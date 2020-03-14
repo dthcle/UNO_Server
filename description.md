@@ -53,7 +53,7 @@
 {
   "request": MATCH_PROTOCOL,
   "data": {
-    "accept_port": accept_port,
+    "client_port": client_port,
     "player_num": player_num
   }
 }
@@ -63,7 +63,7 @@
 将客户端的ip加入到等待队列，如果匹配人数足够就开启游戏服务器，并在游戏服务器上发送对客户端的连接请求
 ```json
 {
-  "response": GAME_START_PROTOCOL,
+  "response": GAME_INIT_PROTOCOL,
   "data": {}
 }
 ```
@@ -76,28 +76,23 @@
   }
 }
 ```
-服务器分清楚各玩家后，开始使用RSA加密进行数据传输(直接明文传输rsa的公钥)
+5. 服务器分清楚各玩家后，开始使用RSA加密进行数据传输(直接明文传输rsa的公钥)
 ```json
 {
   "response": GAME_START_PROTOCOL,
   "data": {
     // true 是逆时针 false 是顺时针
-    "how_to_arrange_player": true,
+    "direction": true,
     // 获取各玩家的手牌数，玩家顺序为逆时针
-    "player_hand_num_list": [
+    "player_hand_num_list": {
       player_username_1 : num_of_hand_1,
       player_username_2 : num_of_hand_2,
       player_username_3 : num_of_hand_3,
       player_username_4 : num_of_hand_4
-    ],
-    "hand_card_increase_num": get_card_num,
-    // 根据hand_card_increase_num获取应该获得手牌的数量，然后获取手牌对应的编号
-    "hand_card": [
-      "card_1": code_of_card,
-      "card_2": code_of_card
-    ],
+    },
+    "hand_card": [code_of_card, code_of_card],
     // 轮到哪个玩家出牌
-    "player_to_discard": player_num,
+    "allow_to_discard": true,
     // 第一张引导牌
     "the_first_guide": code_of_card,
     // RSA公钥
@@ -105,4 +100,8 @@
   }
 }
 ```
+玩家收到服务器的信号后
+
+第一个出牌的玩家(username == username)
+
 

@@ -3,15 +3,16 @@ DELIMITER = '-'
 # OPERATION
 LOGIN_PROTOCOL = 'login'
 MATCH_PROTOCOL = 'match'
+GAME_INIT_PROTOCOL = 'init'
 GAME_START_PROTOCOL = 'start'
 CHECK_USER_IDENTITY_PROTOCOL = 'check'
-GAME_INIT_PROTOCOL = 'init'
 
 # STATUS
-STATUS_NAME = ['成功', '服务器错误', '禁止访问', '用户名或密码错误']
-STATUS_ALL = ['200', '300', '400', '401']
+STATUS_NAME = ['成功', '服务器错误', '输入数据错误', '禁止访问', '用户名或密码错误']
+STATUS_ALL = ['200', '300', '301', '400', '401']
 OK = 0
 ERROR = 1
-FORBIDDEN = 2
-USERNAME_PASSWORD_WRONG = 3
+DATA_ERROR = 2
+FORBIDDEN = 3
+USERNAME_PASSWORD_WRONG = 4
 

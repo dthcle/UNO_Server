@@ -56,16 +56,20 @@ PREFIX_SALT = 'prefix_salt'
 SUFFIX_SALT = 'suffix_salt'
 
 # SERVER
-MATCH_SERVER_ADDRESS = '127.0.0.1'
+MATCH_SERVER_ADDR = '127.0.0.1'
 MATCH_SERVER_PORT = 20000
 
+GAME_SERVER_ADDR = '127.0.0.1'
 GAME_SERVER_PORT_MIN = 21000
 GAME_SERVER_PORT_MAX = 22000
 
 # Client
-CLIENT_DEFAULT_PORT = 22000
+CLIENT_DEFAULT_PORT = 23000
 CLIENT_PUBLIC_KEY_INDEX = 0
 CLIENT_PRIVATE_KEY_INDEX = 1
+
+CLIENT_ADDR_INDEX = 0
+CLIENT_PORT_INDEX = 1
 
 # DATABASE
 NOT_FOUND = 'NOT_FOUND_INFO'
@@ -74,12 +78,20 @@ NOT_FOUND = 'NOT_FOUND_INFO'
 RSA = 'rsa'
 
 # RSA DEPOSITORY
-RSA_DEPOSITORY_LOCATION = './rsa_depository'
+RSA_DEPOSITORY_LOCATION = './rsa_depository/'
+
+# HOW TO PLAY
+BEGINNING_HAND_CARD_NUM = 7
 
 # JSON KEY
-USERNAME = 'username'
-PASSWORD = 'password'
-CLIENT_ADDR = 'client_addr'
-ACCEPT_PORT = 'accept_port'
-PLAYER_NUM = 'player_num'
-
+J_USERNAME = 'username'
+J_PASSWORD = 'password'
+J_CLIENT_ADDR = 'client_addr'
+J_CLIENT_PORT = 'client_port'
+J_PLAYER_NUM = 'player_num'
+J_DIRECTION = 'direction'
+J_PLAYER_HAND_NUM_LIST = 'player_hand_num_list'
+J_HAND_CARD = 'hand_card'
+J_ALLOW_TO_DISCARD = 'allow_to_discard'
+J_THE_FIRST_GUIDE = 'the_first_guide'
+J_RSA_PUBLIC_KEY = 'rsa_public_key'

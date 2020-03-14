@@ -7,11 +7,13 @@ import hashlib
 import base64
 import rsa
 import os
-from util import *
+import random
+from PROTOCOL import *
 from CONST import *
 from pprint import pprint
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(pathname)s[line:%(lineno)d] -  %(thread)d: %(levelname)s: %(message)s')
 
 
 class GameServer:
@@ -19,19 +21,88 @@ class GameServer:
     服务器一直开一个服务端等待连接，客户端发送玩家IP和期望游戏的玩家数来请求连接
     服务器接收到后加入等待玩家列表，人数满足后直接新建GameServer进行游戏
     """
-    def __init__(self, player_number: int, player_list: list, port: list):
+    def __init__(self, player_num: int, player_list: list, port_list: list):
+        from util import secret_encode, secret_decode, response_encoder, request_parser
         logging.info(f"启动游戏服务器.....")
-        self.socket_list = []
+        # 玩家列表
+        self.client_list = []
+        # 该游戏中的牌组
+        self.deck = Deck()
+        # 该游戏中当前的引导牌
+        self.guide = None
+        # 该游戏中玩家数
+        self.player_num = player_num
+        # 当前能够出牌的玩家
+        self.discard_user_index = 0
+        # 连接到玩家的服务器
         for each_ip in player_list:
             # 需要每个客户机上开启一个服务端
             socket_tmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket_list.append(socket_tmp)
+            socket_tmp.bind((GAME_SERVER_ADDR, port_list.pop(0)))
+            socket_tmp.connect(each_ip)
+            logging.info(f"Connect to {each_ip}")
+            socket_tmp.send(secret_encode(response_encoder(GAME_INIT_PROTOCOL)))
+            logging.info(f"Ask for the username")
+            protocol, data = request_parser(secret_decode(socket_tmp.recv(DATA_PACK_MAX_SIZE)))
+            logging.info(f"Getting the data: {data}")
+            if protocol == CHECK_USER_IDENTITY_PROTOCOL:
+                username_tmp = data[J_USERNAME]
+                logging.info(f"Get username ({username_tmp})")
+                client_tmp = Client(username_tmp, socket_tmp)
+                self.client_list.append(client_tmp)
+        logging.info(f"启动游戏服务器成功! 玩家为 ({[str(each) for each in self.client_list]})")
+
+    def run(self):
+        # 发送 init 数据
+        logging.info(f"Ready to send the init data......")
+        from util import secret_encode, secret_decode, response_encoder, request_parser
+        # 随机一名玩家先出牌
+        logging.info(f"choose the player who can first discard...")
+        self.discard_user_index = random.randint(0, self.player_num-1)
+        logging.info(f"choose successfully")
+        # 先将每名玩家的手牌抽好
+        # 应该从庄家开始揭牌
+        for each_repeat in range(BEGINNING_HAND_CARD_NUM):
+            logging.info(f"every player get their initial hand...")
+            for each_client in self.client_list:
+                each_client.hand_card.append(self.deck.get_card())
+        # 获取第一张引导牌
+        logging.info(f"set the first card to guide")
+        self.guide = self.deck.get_card()
+        for each_client in self.client_list:
+            # 生成 每个人的手牌数量 数据
+            player_hand_num_list = {}
+            for each_client_tmp in self.client_list:
+                player_hand_num_list[each_client_tmp.username] = each_client_tmp.hand_card_num()
+            # 生成 init 数据
+            data = {J_DIRECTION: True,
+                    J_PLAYER_HAND_NUM_LIST: player_hand_num_list,
+                    J_HAND_CARD: each_client.hand_card,
+                    J_ALLOW_TO_DISCARD: True if self.client_list.index(each_client) == self.discard_user_index else False,
+                    J_THE_FIRST_GUIDE: self.guide,
+                    J_RSA_PUBLIC_KEY: each_client.public_key.save_pkcs1(format='PEM').decode()
+                    }
+
+            each_client.socket.send(secret_encode(response_encoder(GAME_START_PROTOCOL, data)))
+            logging.info(f"send to ({each_client.username}) successfully")
+        while True:
+            # 这里是游戏开始后的部分
+            pass
 
 
 class Client:
-    def __init__(self, username):
+    """
+    客户端的数据都存储在服务器中的 client_list 数组中，每个客户端的数据都包装成一个 Client 类
+    """
+    def __init__(self, username, sock):
+        from util import database
+        self.socket = sock
         self.username = username
         self.public_key, self.private_key = database.get_user_rsa_key(username)
+        self.hand_card = []
+
+    def hand_card_num(self):
+        return len(self.hand_card)
 
     def __str__(self):
         return self.username
@@ -181,19 +252,23 @@ class Database:
         :param password: 用 md5 加密后的密码
         :return: None
         """
+        logging.info(f"Begin to create a new user...")
         rsa_public_key, rsa_private_key = rsa.newkeys(1024)
         rsa_public_key_location = self.generate_key()+'.pem'
         rsa_private_key_location = self.generate_key()+'.pem'
+        logging.info(f"Generate the rsa key successfully")
         with open(RSA_DEPOSITORY_LOCATION + rsa_public_key_location, 'wb') as f:
             f.write(rsa_public_key.save_pkcs1())
         with open(RSA_DEPOSITORY_LOCATION + rsa_private_key_location, 'wb') as f:
             f.write(rsa_private_key.save_pkcs1())
+        logging.info(f"Save the rsa key successfully")
         rsa_public_key.save_pkcs1()
         create_time = time.strftime("%F %X")
         sql = f"INSERT INTO user VALUES(" \
               f"NULL,'{create_time}','{username}','{Database.md5_encode(password)}','{rsa_public_key_location}','{rsa_private_key_location}','true','{create_time}'" \
               f")"
         self._database_operation(sql)
+        logging.info(f"Create successfully")
 
     def del_user(self, username):
         """
@@ -202,14 +277,14 @@ class Database:
         :return: None
         """
         sql = f"SELECT RSA_public_key_location,RSA_private_key_location FROM user WHERE username='{username}'"
-        rsa_public_key_location, rsa_private_key_location = self._database_select(sql)
+        rsa_public_key_location, rsa_private_key_location = self._database_select(sql)[0]
         os.remove(RSA_DEPOSITORY_LOCATION + rsa_public_key_location)
         os.remove(RSA_DEPOSITORY_LOCATION + rsa_private_key_location)
         logging.info(f"Have been delete the rsa key of ({username})")
         sql = f"DELETE FROM user WHERE username='{username}'"
         self._database_operation(sql)
-        logging.info(f"have been remove the item of ({username})")
-        logging.info(f"remove successfully")
+        logging.info(f"Have been remove the item of ({username})")
+        logging.info(f"Remove successfully")
 
     def get_user_rsa_key(self, username: str):
         """
@@ -287,6 +362,7 @@ class Database:
 class Deck:
     def __init__(self):
         self.cards = []
+        self.shuffle(FULL_DECK)
 
     def get_card(self):
         """
