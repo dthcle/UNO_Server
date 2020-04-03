@@ -23,8 +23,8 @@ def response_encoder(status: str, data=None):
     if data is None:
         data = {}
     tmp = {
-        "response": status,
-        "data": data
+        SERVER_SEND_PROTOCOL: status,
+        DATA_PROTOCOL: data
     }
     return json.dumps(tmp)
 
@@ -36,8 +36,8 @@ def request_parser(json_data: str):
     :return: 解析完成的数据，包含一个 操作名称 和一组 数据
     """
     tmp = json.loads(json_data)
-    protocol = tmp["request"]
-    data = tmp["data"]
+    protocol = tmp[CLIENT_SEND_PROTOCOL]
+    data = tmp[DATA_PROTOCOL]
     return protocol, data
 
 
@@ -106,6 +106,21 @@ def secret_decode(msg, encode_fun=None, key=None):
     return tmp_msg
 
 
+def queue_index_return(begin: int, addend: int, length: int, clockwise: bool):
+    """
+    循环队列下标问题的封装
+    :param begin: 起始下标
+    :param addend: 要后移的下标数
+    :param length: 队列总长度
+    :param clockwise: 顺时针 (true) 还是逆时针 (false)
+    :return: 循环队列的实际下标
+    """
+    if clockwise:
+        return (begin+addend) % length
+    else:
+        return (begin-addend) % length
+
+
 def match_server_get_client_request(client_socket: socket.socket, client_addr, player_dict, game_server_list, server_port_list, lock: threading.Lock):
     """
     匹配服务器接收到客户端匹配请求后回复的信息
@@ -148,7 +163,7 @@ def match_server_get_client_request(client_socket: socket.socket, client_addr, p
                         break
             game_server_list.append(GameServer(int(data[J_PLAYER_NUM]), player_list, tmp_port_list))
             game_server_list[-1].run()
-    if protocol == LOGIN_PROTOCOL:
+    elif protocol == LOGIN_PROTOCOL:
         username = data[J_USERNAME]
         password = data[J_PASSWORD]
         logging.info(f"get the user info! username: {username} password: {password}")
@@ -162,6 +177,10 @@ def match_server_get_client_request(client_socket: socket.socket, client_addr, p
             # client_socket.send(secret_encode(response_encoder(STATUS_ALL[OK], {"rsa_public_key": rsa_public_key})))
             client_socket.send(secret_encode(response_encoder(STATUS_ALL[OK], {J_CLIENT_ADDR: client_addr[CLIENT_ADDR_INDEX]})))
             database.update_login_time(username)
+    elif protocol == LOGOUT_PROTOCOL:
+        username = data[J_USERNAME]
+        database.update_login_status(username, False)
+        logging.info(f"user ({username}) logout!")
     else:
         client_socket.send(secret_encode(response_encoder(STATUS_ALL[FORBIDDEN])))
         client_socket.close()

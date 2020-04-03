@@ -1,18 +1,28 @@
 DELIMITER = '-'
 
+# SERVER CLIENT
+SERVER_SEND_PROTOCOL = 'response'
+CLIENT_SEND_PROTOCOL = 'request'
+DATA_PROTOCOL = 'data'
+
 # OPERATION
 LOGIN_PROTOCOL = 'login'
 MATCH_PROTOCOL = 'match'
+LOGOUT_PROTOCOL = 'logout'
 GAME_INIT_PROTOCOL = 'init'
 GAME_START_PROTOCOL = 'start'
 CHECK_USER_IDENTITY_PROTOCOL = 'check'
 
+USER_DISCARD_PROTOCOL = 'discard'
+GAME_RUN_PROTOCOL = 'running'
+
 # STATUS
-STATUS_NAME = ['成功', '服务器错误', '输入数据错误', '禁止访问', '用户名或密码错误']
-STATUS_ALL = ['200', '300', '301', '400', '401']
+STATUS_NAME = ['成功', '服务器错误', '输入数据错误', '出牌不符合规则', '禁止访问', '用户名或密码错误']
+STATUS_ALL = ['200', '300', '301', '302', '400', '401']
 OK = 0
 ERROR = 1
 DATA_ERROR = 2
-FORBIDDEN = 3
-USERNAME_PASSWORD_WRONG = 4
+IRREGULAR_DATA = 3
+FORBIDDEN = 4
+USERNAME_PASSWORD_WRONG = 5
 

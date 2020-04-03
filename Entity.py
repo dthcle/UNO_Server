@@ -34,6 +34,8 @@ class GameServer:
         self.player_num = player_num
         # 当前能够出牌的玩家
         self.discard_user_index = 0
+        # 该游戏出牌方向
+        self.direction = True
         # 连接到玩家的服务器
         for each_ip in player_list:
             # 需要每个客户机上开启一个服务端
@@ -55,15 +57,15 @@ class GameServer:
     def run(self):
         # 发送 init 数据
         logging.info(f"Ready to send the init data......")
-        from util import secret_encode, secret_decode, response_encoder, request_parser
+        from util import secret_encode, secret_decode, response_encoder, request_parser, queue_index_return
         # 随机一名玩家先出牌
         logging.info(f"choose the player who can first discard...")
         self.discard_user_index = random.randint(0, self.player_num-1)
         logging.info(f"choose successfully")
         # 先将每名玩家的手牌抽好
         # 应该从庄家开始揭牌
+        logging.info(f"every player get their initial hand...")
         for each_repeat in range(BEGINNING_HAND_CARD_NUM):
-            logging.info(f"every player get their initial hand...")
             for each_client in self.client_list:
                 each_client.hand_card.append(self.deck.get_card())
         # 获取第一张引导牌
@@ -71,23 +73,48 @@ class GameServer:
         self.guide = self.deck.get_card()
         for each_client in self.client_list:
             # 生成 每个人的手牌数量 数据
-            player_hand_num_list = {}
+            player_hand_num_list = []
+            players_list = []
             for each_client_tmp in self.client_list:
-                player_hand_num_list[each_client_tmp.username] = each_client_tmp.hand_card_num()
+                player_hand_num_list.append(each_client_tmp.hand_card_num())
+                players_list.append(each_client_tmp.username)
             # 生成 init 数据
-            data = {J_DIRECTION: True,
-                    J_PLAYER_HAND_NUM_LIST: player_hand_num_list,
-                    J_HAND_CARD: each_client.hand_card,
-                    J_ALLOW_TO_DISCARD: True if self.client_list.index(each_client) == self.discard_user_index else False,
-                    J_THE_FIRST_GUIDE: self.guide,
-                    J_RSA_PUBLIC_KEY: each_client.public_key.save_pkcs1(format='PEM').decode()
-                    }
+            data = {
+                J_DIRECTION: True,
+                J_HAND_CARD_NUM_LIST: player_hand_num_list,
+                J_PLAYERS_LIST: players_list,
+                J_HAND_CARD: each_client.hand_card,
+                J_ALLOW_TO_DISCARD: True if self.client_list.index(each_client) == self.discard_user_index else False,
+                J_THE_FIRST_GUIDE: self.guide,
+                J_RSA_PUBLIC_KEY: each_client.public_key.save_pkcs1(format='PEM').decode(),
+                J_RSA_PRIVATE_KEY: each_client.private_key.save_pkcs1(format='PEM').decode()
+            }
 
             each_client.socket.send(secret_encode(response_encoder(GAME_START_PROTOCOL, data)))
             logging.info(f"send to ({each_client.username}) successfully")
+        # 这里是游戏开始后的部分
         while True:
-            # 这里是游戏开始后的部分
-            pass
+            # 只有能够出牌的玩家才能进行游戏操作
+            msg = self.client_list[self.discard_user_index].socket.recv(DATA_PACK_MAX_SIZE)
+            protocol, data = request_parser(secret_decode(msg, RSA, self.client_list[self.discard_user_index].private_key))
+            # 判断出的牌是否合法 如果合法
+            if data[J_CARD_CODE][CARD_COLOR_INDEX] == CARD_COLOR.UNIVERSAL or data[J_CARD_CODE] == self.guide:
+
+                # 处理出牌玩家的操作对对局产生的影响
+
+                # 将当前的对局状态发送给所有玩家
+                for each_client in self.client_list:
+                    pass
+
+                # 根据当前出牌玩家和方向确定下一个出牌玩家
+                self.discard_user_index = queue_index_return(self.discard_user_index, 1, len(self.client_list), self.direction)
+            # 如果不合法
+            else:
+                err_msg = response_encoder(STATUS_ALL[IRREGULAR_DATA])
+                self.client_list[self.discard_user_index].socket.send(secret_encode(err_msg, RSA, self.client_list[self.discard_user_index].public_key))
+
+    def send_message(self):
+        pass
 
 
 class Client:
@@ -325,6 +352,16 @@ class Database:
         """
         login_time = time.strftime("%F %X")
         sql = f"UPDATE user SET last_login_time='{login_time}' WHERE username='{username}'"
+        self._database_operation(sql)
+
+    def update_login_status(self, username: str, status: bool):
+        """
+        更改用户的登陆状态(测试)
+        :param username: 要更改状态的用户名
+        :param status: 更改的目标状态
+        :return: None
+        """
+        sql = f"UPDATE user SET login='{str(status)}' WHERE username='{username}'"
         self._database_operation(sql)
 
     def filename_key_exist(self, file_name: str):

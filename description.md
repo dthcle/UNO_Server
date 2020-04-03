@@ -81,27 +81,69 @@
 {
   "response": GAME_START_PROTOCOL,
   "data": {
+    // true 是顺时针 false 是逆时针
+    "direction": true,
+    // 获取各玩家的手牌数，玩家顺序为逆时针
+    "players_list": [player_username_1, player_username_2, player_username_3, player_username_4],
+    "hand_card_num_list": [num_of_hand_1, num_of_hand_2, num_of_hand_3, num_of_hand_4],
+    "hand_card": [code_of_card, code_of_card],
+    // 轮到哪个玩家出牌
+    "allow_to_discard": player_username,
+    // 引导牌
+    "the_guide": code_of_card,
+    // RSA公私钥
+    "rsa_public_key": rsa_public_key,
+    "rsa_private_key": rsa_private_key
+  }
+}
+```
+6. (循环)玩家收到服务器的信号后
+
+PS: 从此处开始加密
+
+出牌的玩家(username == username)
+```json
+{
+  "request": USER_DISCARD_PROTOCOL,
+  "data": {
+    "card_code": card_code,
+    "guide_color": guide_color
+  }
+}
+```
+服务器接受信号后
+
+判断是否符合出牌规则 否则让该玩家重新出牌(将已出的牌收回)
+ ```json
+{
+  "request": STATUS_ALL[IRREGULAR_DATA],
+  "data": {
+    "error_card_code": card_code
+  }
+}
+```
+ 
+ 根据服务器上的数据判断下一个出牌玩家是谁
+ ```json
+{
+  "response": GAME_RUN_PROTOCOL, 
+  "data": {
     // true 是逆时针 false 是顺时针
     "direction": true,
     // 获取各玩家的手牌数，玩家顺序为逆时针
     "player_hand_num_list": {
-      player_username_1 : num_of_hand_1,
-      player_username_2 : num_of_hand_2,
-      player_username_3 : num_of_hand_3,
-      player_username_4 : num_of_hand_4
+      player_username_1: num_of_hand_1,
+      player_username_2: num_of_hand_2,
+      player_username_3: num_of_hand_3,
+      player_username_4: num_of_hand_4
     },
     "hand_card": [code_of_card, code_of_card],
     // 轮到哪个玩家出牌
-    "allow_to_discard": true,
-    // 第一张引导牌
-    "the_first_guide": code_of_card,
-    // RSA公钥
-    "rsa_public_key": rsa_public_key
+    "allow_to_discard": player_username,
+    // 引导牌
+    "the_guide": code_of_card,
   }
 }
 ```
-玩家收到服务器的信号后
-
-第一个出牌的玩家(username == username)
 
 

@@ -9,5 +9,6 @@ from util import database
 # database.create_user('dthcle', 'dthcle')
 
 result = database.get_user_rsa_key("dthcle")
-print(result[0].save_pkcs1(format='PEM').decode())
-
+tmp = result[0].save_pkcs1(format='PEM').decode()
+print(tmp)
+print(rsa.PublicKey.load_pkcs1(tmp))

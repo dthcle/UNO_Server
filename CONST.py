@@ -90,8 +90,20 @@ J_CLIENT_ADDR = 'client_addr'
 J_CLIENT_PORT = 'client_port'
 J_PLAYER_NUM = 'player_num'
 J_DIRECTION = 'direction'
-J_PLAYER_HAND_NUM_LIST = 'player_hand_num_list'
+J_PLAYERS_LIST = 'players_list'
+J_HAND_CARD_NUM_LIST = 'hand_card_num_list'
 J_HAND_CARD = 'hand_card'
+J_CARD_CODE = 'card_code'
+J_GUIDE_COLOR = 'guide_color'
+J_ERROR_CARD_CODE = 'error_card_code'
 J_ALLOW_TO_DISCARD = 'allow_to_discard'
 J_THE_FIRST_GUIDE = 'the_first_guide'
 J_RSA_PUBLIC_KEY = 'rsa_public_key'
+J_RSA_PRIVATE_KEY = 'rsa_private_key'
+
+# CARD
+CARD_COLOR_INDEX = 0
+CARD_CONTENT_INDEX = 1
+
+
+
